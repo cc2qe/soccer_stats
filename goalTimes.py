@@ -215,14 +215,14 @@ def myFunction(data):
         # print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points(f.last_goal())]))
 
         # test 8: points expected for scoring first goal in matches in which there is more than 1 goal
-        #if num_goals > 1:
-        #    print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points(f.last_goal())]))
+        if num_goals > 1:
+            print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points(f.last_goal())]))
 
         # test 9: points expected for scoring any non-first goal in matches in which there is more than 1 goal
-        if num_goals > 1:
+        #       if num_goals > 1:
             #            if f.team1_final
 
-            print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points()]))            
+            #            print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points()]))            
 
     
     return
