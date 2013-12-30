@@ -220,7 +220,7 @@ def myFunction(data):
 
         # test 9: points expected for scoring any non-first goal in matches in which there is more than 1 goal
         if num_goals > 1:
-            if f.team1_final
+            #            if f.team1_final
 
             print '\t'.join(map(str,[f.first_goal(), f.last_goal(), f.winner(), f.loser(), f.team1_final, f.team2_final, f.points(f.first_goal()), f.points()]))            
 
