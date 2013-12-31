@@ -64,12 +64,71 @@ class Team(object):
             if i <= time: score = score + 1
         return score
 
+    # return the team's score at after a certain goal
+    def score_after_goal(self, myGoal):
+        p = myGoal.ordin
+        # if this team scored the goal, the this team's score is just the team ordinality of the goal
+        if self == myGoal.team:
+            return myGoal.team_ordin
+        else:
+            score = 0
+            for i in range(0,p):
+                if self == myGoal.goal_order[i]:
+                    score = score + 1
+            return score
+
+    def score_before_goal(self, myGoal):
+        p = myGoal.ordin
+        # if this team scored the goal, then just team ordinality minus 1
+        if self == myGoal.team:
+            return myGoal.team_ordin - 1
+        else:
+            score = 0
+            for i in range(0,p):
+                if self == myGoal.goal_order[i]:
+                    score = score + 1
+            return score
+
     # define a global 'null team' with empty attributes to return
     @staticmethod
     def null():
         t = Team('null', -1, -1, [], [], False)
         t.add_opponent(t)
         return t
+
+class Goal(object):
+    def __init__(self, team, scorer, minute, ordin, team_ordin, goal_order):
+        self.team = team
+        self.scorer = scorer
+        self.minute = int(minute)
+        self.ordin = int(ordin) # the ordinality of the goal (of all goals)
+        self.team_ordin = int(team_ordin) # the ordinality of the goal (of the scoring team's goals)
+        self.goal_order = goal_order # each goal is aware of all the other goals
+
+    # returns whether or not a goal breaks a tie
+    def is_lead_taking(self):
+        prior_team1_score = self.team.score_before_goal(self)
+        prior_team2_score = self.team.opp.score_before_goal(self)
+
+        if prior_team1_score == prior_team2_score:
+            return True
+        else:
+            return False
+
+    def is_equalizer(self):
+        post_team1_score = self.team.score_after_goal(self)
+        post_team2_score = self.team.opp.score_after_goal(self)
+        
+        if post_team1_score == post_team2_score:
+            return True
+        else:
+            return False
+
+    # define a global 'null goal' with empty attributes to return
+    @staticmethod
+    def null():
+        g = Goal(Team.null(), 'null', 0, 0, 0, [])
+        return g
 
 # basic class for a game
 class Fixture(object):
@@ -123,6 +182,23 @@ class Fixture(object):
             else:
                 self.winner = Team.null()
                 self.loser = Team.null()
+            
+            # make the list of Goal objects for the match
+            self.goal_list = list()
+            for i in range(len(self.goal_minutes)):
+                t = self.goal_order[i]
+                m = self.goal_minutes[i]
+                s = self.scorer_order[i]
+
+                # team ordinality is tricky, because we have to be careful in case there are two goals scored in the same minute
+                # to be safe, we'll just crawl through the goal_order and count
+                team_ord = 0
+                for r in range(0,i+1):
+                    if t == self.goal_order[r]:
+                        team_ord = team_ord + 1
+
+                g = Goal(t, s, m, i+1, team_ord, self.goal_order)
+                self.goal_list.append(g)
 
     # basic data validation
     def isValid(self):
@@ -148,27 +224,23 @@ class Fixture(object):
                 return t
         return Team.null()
 
-    # returns the team object that scored the first goal
+    # returns the first goal object
     def first_goal(self):
-        if self.goal_order:
-            return self.goal_order[0]
+        if self.goal_list:
+            return self.goal_list[0]
         else:
-            return Team.null()
+            return Goal.null()
 
-    # returns the team object that scored the last goal
+    # returns the last goal object
     def last_goal(self):
         if self.goal_order:
-            return self.goal_order[-1]
+            return self.goal_list[-1]
         else:
-            return Team.null()
+            return Goal.null()
 
-    # returns the team object that scored the kth goal
-    def scoring_team(k):
-        return self.goal_order[k-1]
-
-    # returns the time (minute) of the kth goal
-    def time_of_goal(self,k):
-        return self.goal_minutes[k-1]
+    # returns the kth goal
+    def get_goal(k):
+        return self.goal_list[k-1]
 
     # the number of minutes that a team spent leading the match
     def minutes_in_lead(self, myTeam):
@@ -191,50 +263,73 @@ class Fixture(object):
 # driver function
 def myFunction(data, debug):
     for l in data:
-        f = Fixture(l.rstrip().split('\t'))
-
         # this diagnostic line print all the available info
         if debug:
-            print f.team1.name, f.team2.name, f.team1.num_scored, f.team2.num_scored, f.team1.goal_scorers, f.team2.goal_scorers, f.team1.goal_minutes, f.team2.goal_minutes
+            print l.rstrip()
 
+        f = Fixture(l.rstrip().split('\t'))
         if not f.isValid():
             continue
 
+        # another diagnostic line
+        '''
+        if debug:
+            print f.team1.name, f.team2.name, f.team1.num_scored, f.team2.num_scored, f.team1.goal_scorers, f.team2.goal_scorers, f.team1.goal_minutes, f.team2.goal_minutes
+        '''
+
         # test 1
-        # print '\t'.join(map(str,[f.first_goal().name, f.last_goal().name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored]))
+        '''
+        print '\t'.join(map(str,[f.first_goal().team.name, f.last_goal().team.name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored]))
+        '''
 
         # test 2: minute of first goal
-        # if f.num_goals > 0:
-        #    print f.time_of_goal(1)
+        '''
+        if f.num_goals > 0:
+            print f.first_goal().minute
+        '''
 
         # test 3: minute of last goal
-        # if f.num_goals >0:
-        #     print f.time_of_goal(f.num_goals)
+        '''
+        if f.num_goals >0:
+            print f.last_goal().minute
+        '''
 
         # test 4: total goals
-        # print f.num_goals
+        '''
+        print f.num_goals
+        '''
         
         # test 5: scoring the first goal vs scoring a goal
-        # if (f.team1.num_scored and f.team2.num_scored):
-        #    print '\t'.join(map(str,[f.first_goal().name, f.winner.name]))
+        '''
+        if (f.team1.num_scored > 0 and f.team2.num_scored > 0):
+            print '\t'.join(map(str,[f.first_goal().team.name, f.winner.name]))
+        '''
 
 
         # test 6: time of goals
-        #if f.num_goals > 0:
-        #    for g in f.goal_minutes:
-        #        print g
+        '''
+        if f.num_goals > 0:
+            for g in f.goal_list:
+                print g.minute
+        '''
 
         # test 6: minutes in lead
-        #if f.num_goals > 0:
-        #    print '%s\t%s' % (f.time_of_goal(1), f.minutes_in_lead(f.first_goal()))
+        '''
+        if f.num_goals > 0:
+            print '%s\t%s' % (f.first_goal().minute, f.minutes_in_lead(f.first_goal().team))
+        '''
 
         # test 7: points from match (3 points for a win, 1 for a tie, 0 for a loss)
-        # if f.num_goals > 0:
-        #    print '\t'.join(map(str,[f.first_goal().name, f.last_goal().name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored, f.first_goal().points, f.last_goal().points]))
+        '''
+        if f.num_goals > 0:
+            print '\t'.join(map(str,[f.first_goal().team.name, f.last_goal().team.name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored, f.first_goal().team.points, f.last_goal().team.points]))
+        '''
 
         # test 8: points expected for scoring first goal in matches in which there is more than 1 goal
-        #if f.num_goals > 1:
-        #    print '\t'.join(map(str,[f.first_goal().name, f.last_goal().name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored, f.first_goal().points, f.last_goal().points]))
+        '''
+        if f.num_goals > 1:
+            print '\t'.join(map(str,[f.first_goal().team.name, f.last_goal().team.name, f.winner.name, f.loser.name, f.team1.num_scored, f.team2.num_scored, f.first_goal().team.points, f.last_goal().team.points]))
+        '''
 
         # test 9: points expected for scoring any non-first goal in matches in which there is more than 1 goal
         '''    
@@ -249,11 +344,95 @@ def myFunction(data, debug):
                     break
         '''
 
+
         # test 10: points expected for scoring first goal in matches in which there is more than 1 goal
-        #if f.num_goals > 1:
-        #    print f.first_goal().points
+        '''
+        if f.num_goals > 1:
+            print f.first_goal().team.points
+        '''
 
+        # test 11: in games in which both teams score, is first goal better or worse
+        '''
+        if f.team1.num_scored > 0 and f.team2.num_scored > 0:
+            # first scoring team's points, opponent's exp points
+            print '%s\t%s' % (f.first_goal().team.points, f.first_goal().team.opp.points)
+        '''
 
+        # test 12: lead-taking goals vs non-lead-taking goals.
+        '''
+        # lead-taking goals
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and g.is_lead_taking():
+                    print t.points
+                    break
+        '''
+        '''
+        # last goals
+        for g in f.goal_list:
+            if g == f.last_goal():
+                print g.team.points
+        '''
+        '''
+        # first goals
+        for g in f.goal_list:
+            if g == f.first_goal():
+                print g.team.points
+        '''
+        '''
+        # expected points for any team that scores a goal
+        if f.team1.num_scored > 0:
+            print f.team1.points
+        if f.team2.num_scored > 0:
+            print f.team2.points
+        '''
+        '''
+        # expected points from scoring a NON-lead-taking goal.
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and not g.is_lead_taking():
+                    print t.points
+                    break
+        '''
+        '''
+        # expected points from equalizer
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and g.is_equalizer():
+                    print t.points
+                    break
+        '''
+
+        # test 13: games in which lead-taking goals are the last goal
+        '''
+        for g in f.goal_list:
+            print '%s\t%s\t%s' % (g.team.points, g.is_lead_taking(), g == f.last_goal())
+        '''
+
+        # test 14: is the time of (lead taking) goals correlated with points?
+        '''
+        for g in f.goal_list:
+            print '%s\t%s' % (g.minute, g.team.points)
+        # from histograms in R, scoring early is worse than scoring late (loss plot)
+        '''
+        '''
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and g.is_lead_taking():
+                    print '%s\t%s' % (g.minute, t.points)
+        '''
+
+        # test 15: only compare lead-taking to last goals in the second half
+        '''
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and g.is_lead_taking():
+                    print '%s\t%s' % (g.minute, t.points)
+        '''
+        for t in (f.team1, f.team2):
+            for g in f.goal_list:
+                if t == g.team and g == f.last_goal():
+                    print '%s\t%s' % (g.minute, t.points)
 
     return
 
